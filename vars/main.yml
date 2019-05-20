@@ -1,0 +1,4 @@
+---
+# vars file for tamay.owncloud
+
+owncloud_download_url: https://download.owncloud.org/community/owncloud-{{ owncloud_version }}.tar.bz2

@@ -1,0 +1,141 @@
+---
+
+- hosts: all
+  remote_user: vagrant
+  become: yes
+
+  vars:
+    firewalld_service:
+      - service: http
+        state: enabled
+      - service: https
+        state: enabled
+
+    selinux_boolean:
+      - name: httpd_unified
+        state: yes
+        persistent: yes
+
+    httpd_mpm_module: 'event'
+    httpd_mpm_event_config:
+      ServerLimit: 16
+      MaxClients: 400
+      StartServers: 3
+      ThreadsPerChild: 25
+      ThreadLimit: 64
+    httpd_disable_welcome: yes
+    httpd_vhosts:
+      - servername: "{{ owncloud_url }}"
+        options: |
+          Redirect permanent / https://{{ owncloud_url }}/
+    httpd_vhosts_ssl:
+      - servername: "{{ owncloud_url }}"
+        documentroot: "{{ owncloud_dir }}"
+        errorlog: /var/log/httpd/{{ owncloud_url }}-error.log
+        customlog: /var/log/httpd/{{ owncloud_url }}-access.log
+        options: |
+          <Directory {{ owncloud_dir }}/>
+              Options +FollowSymlinks
+              AllowOverride All
+              <IfModule mod_dav.c>
+                Dav off
+              </IfModule>
+
+            SetEnv HOME {{ owncloud_dir }}
+            SetEnv HTTP_HOME {{ owncloud_dir }}
+
+          </Directory>
+
+          <Directory {{ owncloud_data_dir }}>
+            Require all denied
+          </Directory>
+
+          # PHP Settings
+          AddType text/html .php
+          DirectoryIndex index.php
+          <FilesMatch \.(phar|php)$>
+            SetHandler "proxy:unix:/run/php-fpm/owncloud-{{ php_version }}.sock|fcgi://localhost"
+          </FilesMatch>
+
+    php_version: php72
+    php_modules:
+      - apcu
+      - cli
+      - common
+      - gd
+      - intl
+      - mbstring
+      - mysqlnd
+      - opcache
+      - pecl-apcu
+      - pecl-zip
+      - process
+      - xml
+    php_symlink: yes
+    php_symlink_path: /usr/bin/php
+    php_ini_config:
+      expose_php: off
+      date.timezone: Europe/Berlin
+    php_opcache_config:
+      enable: 1
+      enable_cli: 1
+      memory_consumption: 128
+      interned_strings_buffer: 8
+      max_accelerated_files: 10000
+      save_comments: 1
+      revalidate_freq: 1
+      fast_shutdown: 1
+    php_fpm: yes
+    php_fpm_pools:
+      - name: owncloud
+        config:
+          php_admin_value[error_log]: /var/log/httpd/$pool-fpm-error.log
+          php_admin_flag[log_errors]: on
+          php_admin_value[memory_limit]: 512M
+          php_admin_value[date.timezone]: Europe/Berlin
+          php_admin_value[post_max_size]: 1G
+          php_admin_value[upload_max_filesize]: 1G
+          php_admin_value[max_execution_time]: 3600
+          php_admin_value[max_input_time]: 3600
+          php_value[open_basedir]: /var/www/vhosts/$pool:/dev/urandom
+
+
+    mariadb_version: '10.3'
+    mariadb_config:
+      - section: server
+        options:
+          bind-address: 127.0.0.1
+      - section: mysqld
+        options:
+          innodb_large_prefix: OFF
+          innodb_file_format: Barracuda
+          innodb_file_per_table: ON
+    mariadb_databases:
+      - owncloud
+    mariadb_database_users:
+      - name: owncloud
+        password: eeseGhahx0eiphoo
+        host: localhost
+        priv: 'owncloud.*:ALL,GRANT'
+
+    owncloud_version: '10.2.0'
+    owncloud_dir: /var/www/vhosts/owncloud/owncloud
+    owncloud_data_dir: "{{ owncloud_dir }}/data"
+    owncloud_user: owncloud
+    owncloud_group: owncloud
+    owncloud_database: mysql
+    owncloud_database_name: owncloud
+    owncloud_database_host: localhost
+    owncloud_database_user: owncloud
+    owncloud_database_pass: eeseGhahx0eiphoo
+    owncloud_database_table_prefix: oc_
+    owncloud_admin_user: admin
+    owncloud_admin_pass: admin
+
+  roles:
+  - ../../tamay.firewalld
+  - ../../tamay.selinux
+  - ../../tamay.httpd
+  - ../../tamay.php
+  - ../../tamay.mariadb
+  - ../../tamay.owncloud

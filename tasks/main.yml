@@ -1,0 +1,21 @@
+---
+# tasks file for tamay.owncloud
+
+- name: "Check if {{ owncloud_dir }}/config/config.php exists"
+  stat:
+    path: "{{ owncloud_dir }}/config/config.php"
+  register: _owncloud_config_php
+
+- import_tasks: install.yml
+  when: not _owncloud_config_php.stat.exists
+
+- import_tasks: configure.yml
+
+- name: "Fix file permissions for {{ owncloud_dir }}"
+  file:
+    path: "{{ owncloud_dir }}"
+    state: directory
+    recurse: yes
+    owner: "{{ owncloud_user }}"
+    group: "{{ owncloud_group }}"
+    mode: u=rwX,g=rX,o-rwx

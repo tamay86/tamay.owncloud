@@ -1,0 +1,40 @@
+---
+
+- name: "List installed apps"
+  command: "{{ owncloud_dir }}/occ app:list --no-interaction --no-warnings"
+  changed_when: no
+  register: _owncloud_available_apps
+  become: yes
+  become_user: "{{ owncloud_user }}"
+
+- name: "Install apps from marketplace"
+  command: "{{ owncloud_dir }}/occ market:install {{ item }} --no-interaction --no-warnings"
+  changed_when: '"App installed" in _owncloud_market_install.stdout'
+  register: _owncloud_market_install
+  loop: "{{ owncloud_apps.enabled }}"
+  when: item not in _owncloud_available_apps.stdout
+  become: yes
+  become_user: "{{ owncloud_user }}"
+
+- name: "Update all apps"
+  command: "{{ owncloud_dir }}/occ market:upgrade --all --no-interaction --no-warnings"
+  changed_when: '"App updated" in _owncloud_market_update.stdout'
+  register: _owncloud_market_update
+  become: yes
+  become_user: "{{ owncloud_user }}"
+
+- name: "Enable apps"
+  command: "{{ owncloud_dir }}/occ app:enable {{ item }} --no-interaction --no-warnings"
+  changed_when: '"enabled" in _owncloud_app_enable.stdout'
+  register: _owncloud_app_enable
+  loop: "{{ owncloud_apps.enabled }}"
+  become: yes
+  become_user: "{{ owncloud_user }}"
+
+- name: "Disable apps"
+  command: "{{ owncloud_dir }}/occ app:disable {{ item }} --no-interaction --no-warnings"
+  changed_when: '"disabled" in _owncloud_app_disable.stdout'
+  register: _owncloud_app_disable
+  loop: "{{ owncloud_apps.disabled }}"
+  become: yes
+  become_user: "{{ owncloud_user }}"

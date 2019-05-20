@@ -1,0 +1,48 @@
+---
+# defaults file for tamay.owncloud
+
+# Version of owncloud to download
+# Example: '10.0.1', '10.1.1' or '10.2.0'
+owncloud_version: '10.2.0'
+
+# Document root of owncloud
+owncloud_dir: /var/www/owncloud
+
+# Data directory of owncloud
+owncloud_data_dir: "{{ owncloud_dir }}/data"
+
+# User and group for owncloud_dir
+owncloud_user: apache
+owncloud_group: apache
+
+# Database settings
+owncloud_database: mysql
+owncloud_database_name: owncloud
+owncloud_database_host: localhost
+owncloud_database_user: owncloud
+owncloud_database_pass: password
+owncloud_database_table_prefix: oc_
+
+# Admin user settings
+owncloud_admin_user: admin
+owncloud_admin_pass: admin
+
+# URL for owncloud
+owncloud_url: "{{ ansible_fqdn }}"
+
+# Installs or removes marketplace apps
+owncloud_apps:
+  enabled: []
+  disabled: []
+# Example:
+#owncloud_apps:
+#  enabled:
+#    - brute_force_protection
+#    - calendar
+#    - contacts
+#    - files_pdfviewer
+#    - files_texteditor
+#    - tasks
+#  disabled:
+#    - external
+

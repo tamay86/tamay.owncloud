@@ -1,0 +1,80 @@
+---
+
+- name: "Create {{ owncloud_dir }}"
+  file:
+    state: directory
+    path: "{{ owncloud_dir }}"
+    owner: "{{ owncloud_user }}"
+    group: "{{ owncloud_group }}"
+    mode: 0755
+
+- name: "Create {{ owncloud_data_dir }}"
+  file:
+    state: directory
+    path: "{{ owncloud_data_dir }}"
+    owner: "{{ owncloud_user }}"
+    group: "{{ owncloud_group }}"
+    mode: 0750
+
+- name: "Downloud owncloud {{ owncloud_version }}"
+  unarchive:
+    src: "{{ owncloud_download_url }}"
+    remote_src: yes
+    dest: "{{ owncloud_dir }}"
+    extra_opts: ['--strip-components=1']
+    owner: "{{ owncloud_user }}"
+    group: "{{ owncloud_user }}"
+    creates: "{{ owncloud_dir }}/version.php"
+
+- name: "Check if owncloud is already installed"
+  lineinfile:
+    path: "{{ owncloud_dir }}/config/config.php"
+    line: "  'installed' => true,"
+    state: present
+  check_mode: yes
+  register: _owncloud_check
+  changed_when: no
+  failed_when: no
+
+- name: "Install owncloud"
+  command: |
+    {{ owncloud_dir }}/occ maintenance:install \
+      --database={{ owncloud_database }} \
+      --database-name={{ owncloud_database_name }} \
+      --database-host={{ owncloud_database_host }} \
+      --database-user={{ owncloud_database_user }} \
+      --database-pass={{ owncloud_database_pass }} \
+      --database-table-prefix={{ owncloud_database_table_prefix }} \
+      --admin-user={{ owncloud_admin_user }} \
+      --admin-pass={{ owncloud_admin_pass }} \
+      --data-dir={{ owncloud_data_dir }}
+  when: _owncloud_check.msg != ""
+  become: yes
+  become_user: "{{ owncloud_user }}"
+
+- name: "Set {{ owncloud_url }} as trusted domain"
+  command: "{{ owncloud_dir }}/occ config:system:set trusted_domains 0 --value {{ owncloud_url }}"
+  register: _owncloud_trusted_domains
+  changed_when: '"set to string {{ owncloud_url }}" in _owncloud_trusted_domains.stdout'
+  become: yes
+  become_user: "{{ owncloud_user }}"
+
+
+- name: "Set apcu as memory and file cache"
+  command: "{{ owncloud_dir }}/occ config:system:set {{ item.option }} --value {{ item.value }}"
+  with_items:
+    - option: 'memcache.local'
+      value: '\\OC\\Memcache\\APCu'
+    - option: 'memcache.locking'
+      value: '\\OC\\Memcache\\APCu'
+  register: _owncloud_cache
+  changed_when: '"{{ item.option }} set to string" in _owncloud_cache.stdout'
+  become: yes
+  become_user: "{{ owncloud_user }}"
+
+- name: "Add cronjob"
+  cron:
+    name: "Owncloud cron"
+    minute: "*/15"
+    user: "{{ owncloud_user }}"
+    job: "{{ php_symlink_path }} -f {{ owncloud_dir }}/cron.php"
