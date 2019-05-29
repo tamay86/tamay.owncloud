@@ -16,6 +16,11 @@
     group: "{{ owncloud_group }}"
     mode: 0750
 
+- name: "Ensure lbzip2 is installed"
+  package:
+    state: present
+    name: lbzip2
+
 - name: "Downloud owncloud {{ owncloud_version }}"
   unarchive:
     src: "{{ owncloud_download_url }}"
