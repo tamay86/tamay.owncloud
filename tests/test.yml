@@ -118,7 +118,7 @@
         host: localhost
         priv: 'owncloud.*:ALL,GRANT'
 
-    owncloud_version: '10.2.0'
+    owncloud_version: '10.2.1'
     owncloud_dir: /var/www/vhosts/owncloud/owncloud
     owncloud_data_dir: "{{ owncloud_dir }}/data"
     owncloud_user: owncloud
@@ -133,9 +133,9 @@
     owncloud_admin_pass: admin
 
   roles:
-  - ../../tamay.firewalld
-  - ../../tamay.selinux
-  - ../../tamay.httpd
-  - ../../tamay.php
-  - ../../tamay.mariadb
-  - ../../tamay.owncloud
+  - tamay.firewalld
+  - tamay.selinux
+  - tamay.httpd
+  - tamay.php
+  - tamay.mariadb
+  - tamay.owncloud
